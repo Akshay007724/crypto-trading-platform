@@ -1,0 +1,808 @@
+<title>Signal Deck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    color-scheme: light;
+    --ground:      #F6F7FA;
+    --surface:     #FFFFFF;
+    --surface-2:   #F0F2F6;
+    --border:      #E1E4EA;
+    --text-1:      #12151C;
+    --text-2:      #5B6472;
+    --text-3:      #8891A0;
+    --accent:      #2A78D6;
+    --accent-ink:  #FFFFFF;
+    --good:        #1BAF7A;
+    --good-text:   #006300;
+    --good-wash:   rgba(27, 175, 122, 0.12);
+    --crit:        #E34948;
+    --crit-text:   #B0231F;
+    --crit-wash:   rgba(227, 73, 72, 0.10);
+    --grid-line:   #E9EBEF;
+    --chip-neutral:#EEF0F4;
+    --shadow:      0 1px 2px rgba(18,21,28,0.04), 0 8px 24px rgba(18,21,28,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground:      #090B10;
+      --surface:     #10141C;
+      --surface-2:   #151A24;
+      --border:      #1F2531;
+      --text-1:      #E8EBF2;
+      --text-2:      #8A93A6;
+      --text-3:      #5C6478;
+      --accent:      #4C8DFF;
+      --accent-ink:  #06101F;
+      --good:        #199E70;
+      --good-text:   #3FDBA3;
+      --good-wash:   rgba(25, 158, 112, 0.16);
+      --crit:        #E66767;
+      --crit-text:   #FF8A8A;
+      --crit-wash:   rgba(230, 103, 103, 0.14);
+      --grid-line:   #1A202B;
+      --chip-neutral:#1A2029;
+      --shadow:      0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground:      #090B10;
+    --surface:     #10141C;
+    --surface-2:   #151A24;
+    --border:      #1F2531;
+    --text-1:      #E8EBF2;
+    --text-2:      #8A93A6;
+    --text-3:      #5C6478;
+    --accent:      #4C8DFF;
+    --accent-ink:  #06101F;
+    --good:        #199E70;
+    --good-text:   #3FDBA3;
+    --good-wash:   rgba(25, 158, 112, 0.16);
+    --crit:        #E66767;
+    --crit-text:   #FF8A8A;
+    --crit-wash:   rgba(230, 103, 103, 0.14);
+    --grid-line:   #1A202B;
+    --chip-neutral:#1A2029;
+    --shadow:      0 1px 2px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text-1);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .cond { font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif; }
+
+  a, button { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+  .app {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 16px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ---- Top bar ---- */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand-mark {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.01em;
+  }
+  .brand-mark .dim { color: var(--text-3); font-weight: 500; }
+  .env-tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: 3px;
+    padding: 2px 6px;
+  }
+  .env-tag.offline { color: var(--text-2); background: var(--chip-neutral); border-color: var(--border); }
+  .env-tag.live { color: var(--good-text); background: var(--good-wash); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+
+  .venues { display: flex; gap: 14px; align-items: center; }
+  .venue { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex: none; }
+  .dot.up { background: var(--good); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .dot.live { animation: pulse 2.4s ease-in-out infinite; }
+
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .killswitch {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+  .killswitch-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+  .switch { position: relative; width: 34px; height: 18px; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .track { position: absolute; inset: 0; background: var(--good-wash); border: 1px solid var(--good); border-radius: 10px; transition: background 150ms; }
+  .switch .knob { position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: var(--good); transition: transform 150ms ease-out; }
+  .switch input:checked ~ .track { background: var(--crit-wash); border-color: var(--crit); }
+  .switch input:checked ~ .track ~ .knob { transform: translateX(16px); background: var(--crit); }
+
+  /* ---- Ticker strip ---- */
+  .ticker {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  .ticker-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 18px;
+    border-right: 1px solid var(--border);
+    min-width: 128px;
+    flex: none;
+  }
+  .ticker-item:last-child { border-right: none; }
+  .ticker-item.active { background: var(--surface-2); }
+  .ticker-sym { font-size: 11px; color: var(--text-2); letter-spacing: 0.03em; }
+  .ticker-px { font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .ticker-chg { font-family: "IBM Plex Mono", monospace; font-size: 11px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 3px; }
+  .ticker-chg.up { color: var(--good-text); }
+  .ticker-chg.down { color: var(--crit-text); }
+  .ticker-chg.flat { color: var(--text-3); }
+
+  /* ---- Grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1080px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title {
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .panel-body { padding: 14px; }
+  .panel-body.tight { padding: 0; }
+
+  /* ---- Order book ---- */
+  .book-side { display: flex; flex-direction: column; }
+  .book-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px 14px;
+    font-size: 12px;
+  }
+  .book-row .bar {
+    position: absolute;
+    top: 0; bottom: 0;
+    opacity: 0.5;
+  }
+  .book-row.ask .bar { right: 0; background: var(--crit-wash); }
+  .book-row.bid .bar { left: 0; background: var(--good-wash); }
+  .book-row .px, .book-row .sz { position: relative; z-index: 1; }
+  .book-row.ask .px { color: var(--crit-text); text-align: left; }
+  .book-row.bid .px { color: var(--good-text); text-align: left; }
+  .book-row .sz { text-align: right; color: var(--text-2); }
+  .book-mid {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 14px; margin: 4px 0;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .book-mid .label { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+  .book-mid .value { font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 500; }
+  .book-spread { font-size: 11px; color: var(--text-2); font-family: "IBM Plex Mono", monospace; }
+
+  /* ---- Watchlist mini rows ---- */
+  .watch-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .watch-row:last-child { border-bottom: none; }
+  .watch-row:hover { background: var(--surface-2); }
+  .watch-name { color: var(--text-2); }
+  .watch-vals { text-align: right; font-family: "IBM Plex Mono", monospace; }
+  .watch-vals .chg { display: block; font-size: 10px; }
+
+  /* ---- Chart panel ---- */
+  .chart-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .chart-title-wrap { display: flex; align-items: baseline; gap: 10px; }
+  .chart-pair { font-family: "IBM Plex Sans Condensed", sans-serif; font-weight: 700; font-size: 18px; }
+  .chart-price { font-family: "IBM Plex Mono", monospace; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .chart-delta { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .tf-group { display: flex; gap: 2px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
+  .tf-btn { border: none; background: transparent; padding: 4px 10px; border-radius: 4px; font-size: 11px; color: var(--text-2); font-family: "IBM Plex Mono", monospace; }
+  .tf-btn.active { background: var(--surface); color: var(--text-1); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .legend { display: flex; gap: 14px; padding: 0 14px 10px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); }
+  .swatch { width: 12px; height: 2px; border-radius: 1px; }
+
+  .chart-wrap { position: relative; padding: 4px 8px 8px; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .grid-line { stroke: var(--grid-line); stroke-width: 1; }
+  .axis-label { fill: var(--text-3); font-family: "IBM Plex Mono", monospace; font-size: 10px; }
+  .price-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .price-fill { fill: url(#priceGradient); }
+  .sma-fast { fill: none; stroke: var(--good); stroke-width: 1.5; opacity: 0.9; }
+  .sma-slow { fill: none; stroke: var(--crit); stroke-width: 1.5; opacity: 0.75; }
+  .endpoint { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .marker-buy, .marker-sell { cursor: pointer; }
+  .marker-label { font-family: "IBM Plex Mono", monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.03em; }
+  .crosshair-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 2 3; pointer-events: none; opacity: 0; }
+  .crosshair-dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2; pointer-events: none; opacity: 0; }
+  .hover-target { fill: transparent; }
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 100ms;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .t-row { display: flex; justify-content: space-between; gap: 10px; }
+  .tooltip .t-row + .t-row { margin-top: 2px; }
+  .tooltip .t-key { color: var(--text-3); }
+  .chart-empty { padding: 40px 14px; text-align: center; color: var(--text-3); font-size: 12px; }
+
+  /* ---- Signal panel ---- */
+  .signal-state {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .signal-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: "IBM Plex Sans Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+  }
+  .signal-chip.buy { background: var(--good-wash); color: var(--good-text); border: 1px solid color-mix(in srgb, var(--good) 45%, transparent); }
+  .signal-chip.hold { background: var(--chip-neutral); color: var(--text-2); border: 1px solid var(--border); }
+  .signal-chip.sell { background: var(--crit-wash); color: var(--crit-text); border: 1px solid color-mix(in srgb, var(--crit) 45%, transparent); }
+  .signal-meta { text-align: right; }
+  .signal-meta .lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .signal-meta .val { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; padding: 14px; }
+  .kv { display: flex; flex-direction: column; gap: 3px; }
+  .kv .k { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); }
+  .kv .v { font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+  .kv .v.good { color: var(--good-text); }
+  .kv .v.crit { color: var(--crit-text); }
+
+  /* ---- Meters (risk) ---- */
+  .meter-row { padding: 10px 14px; }
+  .meter-head { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
+  .meter-head .lbl { color: var(--text-2); }
+  .meter-head .num { font-family: "IBM Plex Mono", monospace; color: var(--text-1); }
+  .meter-track { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .meter-fill.warn { background: var(--crit); }
+
+  /* ---- Tables ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: right;
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  td {
+    padding: 7px 14px;
+    text-align: right;
+    font-family: "IBM Plex Mono", monospace;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-1);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface-2); }
+  td.side-buy { color: var(--good-text); }
+  td.side-sell { color: var(--crit-text); }
+  .table-scroll { overflow-x: auto; max-height: 260px; overflow-y: auto; }
+  .pnl.pos::before { content: "+"; }
+
+  .footnote {
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text-3);
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .footnote code { font-family: "IBM Plex Mono", monospace; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+</style>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">Signal<span class="dim">Deck</span></span>
+      <span class="env-tag" id="envTag">connecting&hellip;</span>
+    </div>
+    <div class="venues">
+      <span class="venue"><span class="dot" id="krakenDot"></span>Kraken (live)</span>
+      <span class="venue"><span class="dot"></span>Binance (blocked, region)</span>
+      <span class="venue"><span class="dot"></span>Coinbase (not wired)</span>
+    </div>
+    <div class="topbar-right">
+      <div class="killswitch">
+        <span class="killswitch-label">Kill switch</span>
+        <label class="switch">
+          <input type="checkbox" aria-label="Toggle trading kill switch">
+          <span class="track"></span>
+          <span class="knob"></span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="ticker" role="list" aria-label="Watchlist ticker">
+    <div class="ticker-item active">
+      <span class="ticker-sym mono">BTC-USD <span style="opacity:.6">kraken</span></span>
+      <span class="ticker-px" id="tickerPrice">&mdash;</span>
+      <span class="ticker-chg flat" id="tickerChg">waiting for trades&hellip;</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-sym mono">ETH-USD</span>
+      <span class="ticker-px">3,214.08</span>
+      <span class="ticker-chg down">▼ 0.62% <span style="opacity:.5">· sample</span></span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-sym mono">SOL-USD</span>
+      <span class="ticker-px">148.77</span>
+      <span class="ticker-chg up">▲ 3.21% <span style="opacity:.5">· sample</span></span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-sym mono">XRP-USD</span>
+      <span class="ticker-px">0.5842</span>
+      <span class="ticker-chg down">▼ 1.05% <span style="opacity:.5">· sample</span></span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: order book + watchlist -->
+    <div class="col">
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Order Book &middot; BTC-USD</span>
+          <span class="book-spread">illustrative</span>
+        </div>
+        <div class="panel-body tight">
+          <div class="book-side" id="askRows"></div>
+          <div class="book-mid">
+            <span class="label">Mid</span>
+            <span class="value mono" id="bookMid">&mdash;</span>
+          </div>
+          <div class="book-side" id="bidRows"></div>
+        </div>
+        <div class="footnote">Depth is generated around the live mid price — book-diff ingestion isn't wired yet, only the trade stream is.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Data Sources</span>
+        </div>
+        <div class="panel-body tight">
+          <div class="watch-row"><span class="watch-name">Kraken WS v2</span><span class="watch-vals" id="krakenStatus">connecting</span></div>
+          <div class="watch-row"><span class="watch-name">TimescaleDB</span><span class="watch-vals" id="dbStatus">&mdash;</span></div>
+          <div class="watch-row"><span class="watch-name">API server</span><span class="watch-vals" id="apiStatus">&mdash;</span></div>
+        </div>
+        <div class="footnote">Ingestion service (<code>hft.main</code>) writes trades to TimescaleDB and publishes to Redis; this page reads both through the FastAPI layer (<code>hft.api</code>).</div>
+      </section>
+    </div>
+
+    <!-- CENTER: chart + trades -->
+    <div class="col">
+      <section class="panel">
+        <div class="chart-toolbar">
+          <div class="chart-title-wrap">
+            <span class="chart-pair">BTC-USD</span>
+            <span class="chart-price" id="chartPrice">&mdash;</span>
+            <span class="chart-delta" id="chartDelta"></span>
+          </div>
+          <div class="tf-group" role="tablist" aria-label="Timeframe">
+            <button class="tf-btn active" type="button" aria-selected="true">Live</button>
+          </div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch" style="background:var(--accent)"></span>Price</span>
+          <span class="legend-item"><span class="swatch" style="background:var(--good)"></span>SMA fast (2)</span>
+          <span class="legend-item"><span class="swatch" style="background:var(--crit)"></span>SMA slow (3)</span>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <svg class="chart" id="priceChart" viewBox="0 0 760 260" preserveAspectRatio="none" role="img" aria-label="BTC-USD live price with fast and slow moving averages">
+            <defs>
+              <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <g id="gridLines"></g>
+            <path id="areaPath" class="price-fill"></path>
+            <path id="slowPath" class="sma-slow"></path>
+            <path id="fastPath" class="sma-fast"></path>
+            <path id="pricePath" class="price-line"></path>
+            <g id="markers"></g>
+            <circle id="endpointDot" class="endpoint" r="3.5"></circle>
+            <line id="crossX" class="crosshair-line" y1="6" y2="234"></line>
+            <circle id="crossDot" class="crosshair-dot" r="4"></circle>
+            <rect id="hoverTarget" class="hover-target" x="0" y="0" width="760" height="240"></rect>
+          </svg>
+          <div class="tooltip" id="chartTooltip"></div>
+          <div class="chart-empty" id="chartEmpty">Waiting for trade history from the API&hellip;</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Live Trades &middot; BTC-USD</span>
+          <span style="font-size:11px;color:var(--text-3)" class="mono">kraken, real-time</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Time</th><th>Side</th><th>Price</th><th>Size</th></tr>
+            </thead>
+            <tbody id="tradesBody">
+              <tr><td colspan="4" style="text-align:center;color:var(--text-3)">no trades yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT: signal + risk + positions -->
+    <div class="col">
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Strategy Signal</span></div>
+        <div class="signal-state">
+          <span class="signal-chip hold" id="signalChip">● HOLD</span>
+          <div class="signal-meta">
+            <div class="lbl">Last cross</div>
+            <div class="val" id="lastCross">&mdash;</div>
+          </div>
+        </div>
+        <div class="kv-grid">
+          <div class="kv"><span class="k">Fast SMA (2)</span><span class="v" id="fastVal">&mdash;</span></div>
+          <div class="kv"><span class="k">Slow SMA (3)</span><span class="v" id="slowVal">&mdash;</span></div>
+          <div class="kv"><span class="k">Trades seen</span><span class="v" id="tradeCount">0</span></div>
+          <div class="kv"><span class="k">Mode</span><span class="v">Signal-only</span></div>
+        </div>
+        <div class="footnote">Same <code>MovingAverageCrossover(2,3)</code> strategy from the backtest engine, run live on the trade feed — signal-only, no paper or real orders placed here yet.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Risk Limits</span></div>
+        <div class="meter-row">
+          <div class="meter-head"><span class="lbl">Position size</span><span class="num">0.00 / 2.00 BTC</span></div>
+          <div class="meter-track"><div class="meter-fill" style="width:0%"></div></div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-head"><span class="lbl">Daily loss</span><span class="num">$0 / $2,000</span></div>
+          <div class="meter-track"><div class="meter-fill" style="width:0%"></div></div>
+        </div>
+        <div class="footnote">Illustrative — the risk manager and execution engine are v3 in the platform plan, not built yet.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">About this view</span></div>
+        <div class="footnote" style="border-top:none">
+          Real: Kraken trade stream &rarr; ingestion core &rarr; TimescaleDB + Redis &rarr; this page (REST for history, WebSocket for live ticks).<br><br>
+          Mock: order book depth, other watchlist symbols, position/risk figures.
+        </div>
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  var EXCHANGE = 'kraken';
+  var SYMBOL = 'BTC-USD';
+  var MAX_POINTS = 200;
+
+  var envTag = document.getElementById('envTag');
+  var krakenDot = document.getElementById('krakenDot');
+  var krakenStatus = document.getElementById('krakenStatus');
+  var dbStatus = document.getElementById('dbStatus');
+  var apiStatus = document.getElementById('apiStatus');
+  var tickerPrice = document.getElementById('tickerPrice');
+  var tickerChg = document.getElementById('tickerChg');
+  var chartPrice = document.getElementById('chartPrice');
+  var chartDelta = document.getElementById('chartDelta');
+  var tradesBody = document.getElementById('tradesBody');
+  var chartEmpty = document.getElementById('chartEmpty');
+  var chartWrap = document.getElementById('chartWrap');
+  var bookMid = document.getElementById('bookMid');
+  var signalChip = document.getElementById('signalChip');
+  var lastCross = document.getElementById('lastCross');
+  var fastValEl = document.getElementById('fastVal');
+  var slowValEl = document.getElementById('slowVal');
+  var tradeCountEl = document.getElementById('tradeCount');
+
+  var trades = []; // {price, ts, side}
+  var openPrice = null;
+  var wasFastAboveSlow = null;
+
+  function setEnv(state) {
+    envTag.className = 'env-tag ' + state.cls;
+    envTag.textContent = state.text;
+  }
+
+  function sma(arr, n) {
+    if (arr.length < n) return null;
+    var sum = 0;
+    for (var i = arr.length - n; i < arr.length; i++) sum += arr[i];
+    return sum / n;
+  }
+
+  function renderTradesTable() {
+    var rows = trades.slice(-30).reverse().map(function (t) {
+      var time = new Date(t.ts * 1000).toLocaleTimeString();
+      var sideClass = t.side === 'buy' ? 'side-buy' : 'side-sell';
+      return '<tr><td>' + time + '</td><td class="' + sideClass + '">' + t.side.toUpperCase() +
+        '</td><td>' + t.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '</td><td>' + t.size.toFixed(5) + '</td></tr>';
+    });
+    tradesBody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text-3)">no trades yet</td></tr>';
+  }
+
+  function updateSignal() {
+    var prices = trades.map(function (t) { return t.price; });
+    var fast = sma(prices, 2);
+    var slow = sma(prices, 3);
+    fastValEl.textContent = fast ? fast.toFixed(2) : '—';
+    slowValEl.textContent = slow ? slow.toFixed(2) : '—';
+    tradeCountEl.textContent = trades.length;
+
+    if (fast == null || slow == null || fast === slow) return;
+    var isAbove = fast > slow;
+    if (wasFastAboveSlow !== null && isAbove !== wasFastAboveSlow) {
+      var kind = isAbove ? 'buy' : 'sell';
+      signalChip.className = 'signal-chip ' + kind;
+      signalChip.textContent = '● ' + kind.toUpperCase();
+      lastCross.textContent = new Date().toLocaleTimeString() + ' · ' + kind.toUpperCase();
+    }
+    wasFastAboveSlow = isAbove;
+  }
+
+  function renderBook(midPrice) {
+    bookMid.textContent = midPrice.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    var asks = [], bids = [];
+    for (var i = 8; i >= 1; i--) asks.push({ px: midPrice + i * (midPrice * 0.00005), sz: (Math.random() * 1.8 + 0.1).toFixed(3) });
+    for (var j = 1; j <= 8; j++) bids.push({ px: midPrice - j * (midPrice * 0.00005), sz: (Math.random() * 1.8 + 0.1).toFixed(3) });
+    function render(rows, side, container) {
+      var maxSz = Math.max.apply(null, rows.map(function (r) { return parseFloat(r.sz); }));
+      container.innerHTML = rows.map(function (r) {
+        var pct = (parseFloat(r.sz) / maxSz) * 100;
+        return '<div class="book-row ' + side + '"><div class="bar" style="width:' + pct.toFixed(0) + '%"></div>' +
+          '<span class="px mono">' + r.px.toFixed(2) + '</span><span class="sz mono">' + r.sz + '</span></div>';
+      }).join('');
+    }
+    render(asks, 'ask', document.getElementById('askRows'));
+    render(bids, 'bid', document.getElementById('bidRows'));
+  }
+
+  // ---- SVG chart ----
+  var W = 760, H = 260, padTop = 10, padBottom = 26, padL = 4, padR = 4;
+  var plotH = H - padTop - padBottom;
+  var svg = document.getElementById('priceChart');
+  var crossX = document.getElementById('crossX');
+  var crossDot = document.getElementById('crossDot');
+  var tooltip = document.getElementById('chartTooltip');
+  var hoverTarget = document.getElementById('hoverTarget');
+  var gridDrawn = false;
+
+  function drawChart() {
+    var prices = trades.slice(-MAX_POINTS).map(function (t) { return t.price; });
+    if (prices.length < 2) { chartEmpty.style.display = 'block'; return; }
+    chartEmpty.style.display = 'none';
+
+    var fastSeries = prices.map(function (_, i) { return i < 1 ? null : (prices[i] + prices[i - 1]) / 2; });
+    var slowSeries = prices.map(function (_, i) { return i < 2 ? null : (prices[i] + prices[i - 1] + prices[i - 2]) / 3; });
+
+    var min = Math.min.apply(null, prices), max = Math.max.apply(null, prices);
+    var span = (max - min) || (max * 0.001) || 1;
+    function x(i) { return padL + (i / (prices.length - 1)) * (W - padL - padR); }
+    function y(v) { return padTop + (1 - (v - min) / span) * plotH; }
+    function pathFor(arr) {
+      var d = '';
+      arr.forEach(function (v, i) {
+        if (v == null) return;
+        d += (d === '' ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1) + ' ';
+      });
+      return d.trim();
+    }
+
+    document.getElementById('pricePath').setAttribute('d', pathFor(prices));
+    document.getElementById('fastPath').setAttribute('d', pathFor(fastSeries));
+    document.getElementById('slowPath').setAttribute('d', pathFor(slowSeries));
+    var areaD = pathFor(prices) + ' L' + x(prices.length - 1).toFixed(1) + ',' + (H - padBottom) +
+      ' L' + x(0).toFixed(1) + ',' + (H - padBottom) + ' Z';
+    document.getElementById('areaPath').setAttribute('d', areaD);
+
+    var endDot = document.getElementById('endpointDot');
+    endDot.setAttribute('cx', x(prices.length - 1));
+    endDot.setAttribute('cy', y(prices[prices.length - 1]));
+
+    if (!gridDrawn) {
+      var gridG = document.getElementById('gridLines');
+      for (var g = 0; g < 4; g++) {
+        var gy = padTop + (g / 3) * plotH;
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('class', 'grid-line');
+        line.setAttribute('x1', padL); line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy.toFixed(1)); line.setAttribute('y2', gy.toFixed(1));
+        gridG.appendChild(line);
+      }
+      gridDrawn = true;
+    }
+
+    hoverTarget.onmousemove = function (e) {
+      var rect = svg.getBoundingClientRect();
+      var relX = ((e.clientX - rect.left) / rect.width) * W;
+      var i = Math.round(((relX - padL) / (W - padL - padR)) * (prices.length - 1));
+      i = Math.max(0, Math.min(prices.length - 1, i));
+      var px = x(i), py = y(prices[i]);
+      crossX.setAttribute('x1', px); crossX.setAttribute('x2', px); crossX.style.opacity = 1;
+      crossDot.setAttribute('cx', px); crossDot.setAttribute('cy', py); crossDot.style.opacity = 1;
+      tooltip.innerHTML = '<div class="t-row"><span class="t-key">Price</span><span>' + prices[i].toLocaleString() + '</span></div>';
+      var wrapRect = chartWrap.getBoundingClientRect();
+      tooltip.style.left = Math.min(Math.max((px / W) * wrapRect.width, 60), wrapRect.width - 70) + 'px';
+      tooltip.style.top = ((py / H) * wrapRect.height - 34) + 'px';
+      tooltip.classList.add('show');
+    };
+    hoverTarget.onmouseleave = function () {
+      crossX.style.opacity = 0; crossDot.style.opacity = 0; tooltip.classList.remove('show');
+    };
+  }
+
+  function onTrade(t) {
+    trades.push(t);
+    if (trades.length > 2000) trades.shift();
+    if (openPrice === null) openPrice = t.price;
+
+    tickerPrice.textContent = t.price.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    chartPrice.textContent = t.price.toLocaleString(undefined, { minimumFractionDigits: 2 });
+    var delta = t.price - openPrice;
+    var pct = openPrice ? (delta / openPrice) * 100 : 0;
+    var sign = delta >= 0 ? '+' : '';
+    var cls = delta >= 0 ? 'up' : 'down';
+    var arrow = delta >= 0 ? '▲' : '▼';
+    tickerChg.className = 'ticker-chg ' + cls;
+    tickerChg.textContent = arrow + ' ' + Math.abs(pct).toFixed(2) + '%';
+    chartDelta.textContent = sign + delta.toFixed(2) + ' (' + sign + pct.toFixed(2) + '%)';
+    chartDelta.style.color = delta >= 0 ? 'var(--good-text)' : 'var(--crit-text)';
+
+    renderBook(t.price);
+    renderTradesTable();
+    updateSignal();
+    drawChart();
+  }
+
+  function apiBase() {
+    return window.location.origin;
+  }
+
+  async function loadHistory() {
+    try {
+      apiStatus.textContent = 'loading history…';
+      var res = await fetch(apiBase() + '/api/trades/' + EXCHANGE + '/' + SYMBOL + '?limit=' + MAX_POINTS);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var rows = await res.json();
+      apiStatus.textContent = 'connected';
+      dbStatus.textContent = rows.length + ' trades loaded';
+      rows.forEach(onTrade);
+      return true;
+    } catch (err) {
+      apiStatus.textContent = 'unreachable';
+      dbStatus.textContent = 'unreachable';
+      return false;
+    }
+  }
+
+  function connectLive() {
+    var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var ws = new WebSocket(proto + '//' + window.location.host + '/ws/ticks/' + EXCHANGE + '/' + SYMBOL);
+
+    ws.onopen = function () {
+      krakenStatus.textContent = 'connected';
+      krakenDot.classList.add('live', 'up');
+      setEnv({ cls: 'live', text: 'Live · Kraken' });
+    };
+    ws.onmessage = function (evt) {
+      onTrade(JSON.parse(evt.data));
+    };
+    ws.onclose = function () {
+      krakenStatus.textContent = 'disconnected — retrying';
+      krakenDot.classList.remove('live', 'up');
+      setEnv({ cls: 'offline', text: 'Reconnecting…' });
+      setTimeout(connectLive, 3000);
+    };
+    ws.onerror = function () { ws.close(); };
+  }
+
+  (async function init() {
+    setEnv({ cls: 'offline', text: 'connecting…' });
+    krakenStatus.textContent = 'connecting…';
+    await loadHistory();
+    connectLive();
+  })();
+})();
+</script>
