@@ -24,6 +24,8 @@ STOCK_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN", "NVDA"]
 
 if "history" not in st.session_state:
     st.session_state.history = {}  # symbol -> list[float]
+if "volume_history" not in st.session_state:
+    st.session_state.volume_history = {}  # symbol -> list[float], crypto only (Kraken ticker has it, Finnhub free quote doesn't)
 if "strategy" not in st.session_state:
     st.session_state.strategy = {}  # symbol -> MovingAverageCrossover
 if "signals" not in st.session_state:
@@ -70,6 +72,12 @@ def update(symbol: str, quote: dict) -> None:
     if len(history) > 300:
         history.pop(0)
 
+    if "volume" in quote:
+        volume_history = st.session_state.volume_history.setdefault(symbol, [])
+        volume_history.append(quote["volume"])
+        if len(volume_history) > 300:
+            volume_history.pop(0)
+
     strategy = st.session_state.strategy.setdefault(symbol, MovingAverageCrossover(fast=3, slow=8))
     trade = Trade(exchange="poll", symbol=symbol, price=quote["price"], size=0, side="n/a", ts=int(time.time()))
     signal = strategy.on_trade(trade)
@@ -88,21 +96,36 @@ if quote is None:
 else:
     update(symbol, quote)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Price", f"{quote['price']:,.2f}")
+    has_volume = "volume" in quote
+    cols = st.columns(5 if has_volume else 4)
+    cols[0].metric("Price", f"{quote['price']:,.2f}")
     if "change" in quote:
-        col2.metric("Change", f"{quote['change']:+,.2f}", f"{quote['pct_change']:+.2f}%")
-    col3.metric("High", f"{quote['high']:,.2f}")
-    col4.metric("Low", f"{quote['low']:,.2f}")
+        cols[1].metric("Change", f"{quote['change']:+,.2f}", f"{quote['pct_change']:+.2f}%")
+    cols[2].metric("High", f"{quote['high']:,.2f}")
+    cols[3].metric("Low", f"{quote['low']:,.2f}")
+    if has_volume:
+        cols[4].metric("24h Volume", f"{quote['volume']:,.2f}")
 
     history = st.session_state.history[symbol]
     if len(history) >= 2:
+        st.subheader("Price")
         df = pd.DataFrame({"price": history})
         df["sma_fast"] = df["price"].rolling(3).mean()
         df["sma_slow"] = df["price"].rolling(8).mean()
         st.line_chart(df)
     else:
         st.caption("Collecting price history — refresh a few times to see the chart and SMA crossover.")
+
+    st.subheader("Volume")
+    if has_volume:
+        volume_history = st.session_state.volume_history.get(symbol, [])
+        if len(volume_history) >= 2:
+            st.bar_chart(pd.DataFrame({"24h volume": volume_history}))
+            st.caption("Kraken's rolling 24h volume, sampled on each refresh — not per-trade volume.")
+        else:
+            st.caption("Collecting volume history — refresh a few more times.")
+    else:
+        st.caption("Not available — Finnhub's free /quote endpoint doesn't return volume.")
 
     signals = st.session_state.signals.get(symbol, [])
     st.subheader("Strategy signals")

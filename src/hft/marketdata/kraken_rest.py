@@ -12,6 +12,7 @@ def parse_ticker(raw: dict, result_key: str) -> dict | None:
         "high": float(entry["h"][1]),
         "low": float(entry["l"][1]),
         "open": float(entry["o"]),
+        "volume": float(entry["v"][1]),
     }
 
 

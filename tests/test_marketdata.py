@@ -51,8 +51,8 @@ def test_parses_kraken_ticker_response():
     # Act
     ticker = parse_ticker(raw, "XXBTZUSD")
 
-    # Assert
-    assert ticker == {"price": 77285.7, "high": 78800.0, "low": 76016.3, "open": 78327.7}
+    # Assert: v[1] is 24h volume, per Kraken's documented ticker response shape
+    assert ticker == {"price": 77285.7, "high": 78800.0, "low": 76016.3, "open": 78327.7, "volume": 4339.93849337}
 
 
 def test_kraken_ticker_error_response_returns_none():
