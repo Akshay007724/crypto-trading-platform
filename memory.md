@@ -120,3 +120,46 @@ provisioning). Full rationale and file-by-file breakdown is in `README.md` (new)
   Write calls in the same tool-batch worked for that batch, but the next unrelated batch
   needed its own restatement. Expect this every session until GateGuard's session-level
   cache behavior is better understood.
+
+## UI direction: several rounds of mockups, landed on "Focus mode," shipped to prod
+
+User rejected the first UI direction (a Bloomberg-terminal command-log/session-stream
+layout, published as a "Signal Deck" artifact with 5 color themes) as "too terminal/
+retro, too dense." Pivoted to a calm non-CLI direction ("Pulse" artifact — warm dark
+palette, Calistoga+Inter type, 4 layout concepts: Focus/Bento/Split/Canvas). User picked
+**Focus mode** and asked to build it into the real app.
+
+- Implemented in `streamlit_app.py`: warm dark theme via new `.streamlit/config.toml`
+  `[theme]` block (background `#151119`, accent `#FF7A59`, mint/rose bull/bear), Google
+  Fonts (Calistoga display + Inter body) injected via `st.markdown(unsafe_allow_html=True)`,
+  hero price/change-pill/stat-chip HTML block, agent console tucked into a
+  `st.expander("💬 Ask Pulse about {symbol}")`.
+- **Real bug found and fixed**: Streamlit's native `st.area_chart`/`st.line_chart` force
+  a zero-value y-axis baseline — for BTC prices (~$80k, moving by ~$1k) this flattens the
+  entire chart into an unreadable line pinned near the top. Fixed with an explicit Altair
+  `mark_line` + `alt.Scale(domain=[min-pad, max+pad])`. Also tried an Altair
+  `mark_area` with a linear gradient fill first (to match the mockup) — the fill
+  genuinely would not render in Streamlit's altair host (tried `alt.Gradient`, plain
+  solid `color=`+`opacity=`, and `alt.themes.enable("default")` to rule out Streamlit's
+  theme override — none worked, only the `line` overlay ever rendered). Gave up on the
+  gradient fill after 3 attempts and shipped a plain line — correct axis behavior
+  mattered more than the decorative fill, and it wasn't worth more time. Worth
+  revisiting if someone wants the exact filled-gradient look later.
+- Rewrote `st.markdown(unsafe_allow_html=True)` calls to use `textwrap.dedent` — an
+  earlier bug: CommonMark treats a blank line inside a raw HTML block (e.g. the
+  `<style>` block) as ending the block, so any blank line between CSS rule groups
+  caused the rest of the CSS to render as literal visible text on the page instead of
+  being parsed as a stylesheet. Fix was removing blank lines inside the `<style>` block,
+  not just dedenting.
+- `hft.ui.agent_console.render_agent_console()` gained a `show_header: bool = True`
+  param so it can be embedded inside a titled container (the expander) without a
+  duplicate heading.
+- Verified locally via a real `streamlit run` + chrome-devtools MCP screenshots
+  (not just code review) before pushing — caught both bugs above this way.
+- Committed and pushed to `main` (`18ff2a2..e5c55c4`) at the user's request ("push it
+  to github so streamlit can pick up") — Streamlit Community Cloud auto-deploys from
+  the connected repo. Added `altair` to `requirements.txt` since the app now imports
+  it directly (previously only a transitive `streamlit` dependency).
+- The rejected terminal-style mockups are still live as separate Artifacts (not
+  deleted) — "Signal Deck" (5 terminal themes + 2 layouts) and "Pulse" (4 calm
+  layouts) — in case the user wants to revisit either later.

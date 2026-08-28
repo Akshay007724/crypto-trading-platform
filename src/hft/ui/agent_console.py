@@ -18,14 +18,18 @@ from hft.tools.market_tools import MarketTools, build_default_governor
 
 
 @st.cache_resource
-def _get_supervisor(finnhub_key: str) -> Supervisor:
-    tools = MarketTools(
+def get_market_tools(finnhub_key: str) -> MarketTools:
+    return MarketTools(
         quote_cache=QuoteCache(config.UPSTASH_REDIS_URL, ttl_s=config.QUOTE_CACHE_TTL_S),
         governor=build_default_governor(),
         store=TimeseriesStore(config.LOCAL_TIMESERIES_DB),
         finnhub_api_key=finnhub_key,
     )
-    return Supervisor(tools)
+
+
+@st.cache_resource
+def _get_supervisor(finnhub_key: str) -> Supervisor:
+    return Supervisor(get_market_tools(finnhub_key))
 
 
 def render_agent_console(finnhub_key: str = "", show_header: bool = True) -> None:
