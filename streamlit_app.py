@@ -15,7 +15,7 @@ from hft.strategies.moving_average import MovingAverageCrossover
 from hft.types import Signal, Trade
 from hft.ui.agent_console import get_market_tools, render_agent_console
 
-st.set_page_config(page_title="Signal Deck", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Signal Deck", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
 
 CRYPTO_PAIRS = {
     "BTC/USD": ("XBTUSD", "XXBTZUSD"),
@@ -25,10 +25,10 @@ CRYPTO_PAIRS = {
 }
 STOCK_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN", "NVDA"]
 
-# Dense dashboard visual language — slate/blue-black fintech palette (matches
-# .streamlit/config.toml's [theme]), Inter throughout, tight spacing. Chosen
-# after two rejected directions (retro-terminal, then an overly sparse warm
-# "Focus mode") — this one mirrors TradingView/Robinhood's density.
+# Dense TradingView/Robinhood-style dashboard — full-bleed top bar instead of
+# Streamlit's default sidebar, slate/blue-black fintech palette, Inter
+# throughout. Chosen after two rejected directions (retro-terminal, then a
+# too-sparse warm "Focus mode").
 st.markdown(
     textwrap.dedent(
         """\
@@ -37,7 +37,11 @@ st.markdown(
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
         html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-        .sd-stat-row { display:flex; gap:24px; flex-wrap:wrap; align-items:baseline; margin-bottom:10px; }
+        .sd-wordmark { font-weight:800; font-size:16px; letter-spacing:-0.01em; padding-top:6px; }
+        .sd-wordmark span { color:#3b82f6; }
+        .sd-pill { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#94a3b8; background:#141a2e; border:1px solid #243043; border-radius:6px; padding:5px 9px; margin-top:4px; }
+        .sd-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 6px #22c55e; }
+        .sd-stat-row { display:flex; gap:24px; flex-wrap:wrap; align-items:baseline; margin-bottom:6px; }
         .sd-price-block { display:flex; align-items:baseline; gap:10px; margin-right:8px; }
         .sd-px { font-size:26px; font-weight:700; }
         .sd-chg { font-size:13px; font-weight:700; padding:2px 9px; border-radius:5px; }
@@ -70,29 +74,31 @@ if "strategy" not in st.session_state:
 if "signals" not in st.session_state:
     st.session_state.signals = {}  # symbol -> list of (time, Signal)
 
-st.sidebar.title("Signal Deck")
-st.sidebar.caption("Polling-based market view — built for Streamlit Community Cloud, no background WS service.")
+top_l, top_a, top_s, top_p, top_spacer, top_gear = st.columns([1.1, 1, 1.3, 1.3, 3, 0.6])
 
-asset_class = st.sidebar.radio("Asset class", ["Crypto", "Stocks"])
+with top_l:
+    st.markdown('<div class="sd-wordmark">SIGNAL<span>DECK</span></div>', unsafe_allow_html=True)
+with top_a:
+    asset_class = st.radio("Asset class", ["Crypto", "Stocks"], horizontal=True, label_visibility="collapsed")
+with top_s:
+    symbol = st.selectbox("Symbol", list(CRYPTO_PAIRS.keys()) if asset_class == "Crypto" else STOCK_SYMBOLS, label_visibility="collapsed")
+with top_p:
+    st.markdown('<div class="sd-pill"><span class="sd-dot"></span>Kraken live</div>', unsafe_allow_html=True)
 
-if asset_class == "Crypto":
-    symbol = st.sidebar.selectbox("Pair", list(CRYPTO_PAIRS.keys()))
-    finnhub_key = ""
-else:
-    symbol = st.sidebar.selectbox("Symbol", STOCK_SYMBOLS)
-    try:
-        default_key = st.secrets.get("FINNHUB_API_KEY", "")
-    except Exception:
-        default_key = ""  # no secrets.toml configured — user enters a key manually
-    finnhub_key = st.sidebar.text_input(
+try:
+    default_key = st.secrets.get("FINNHUB_API_KEY", "")
+except Exception:
+    default_key = ""  # no secrets.toml configured — user enters a key manually
+
+with top_gear, st.popover("⚙"):
+    finnhub_key = st.text_input(
         "Finnhub API key",
         value=default_key,
         type="password",
-        help="Free key from finnhub.io — stored only in this session, never committed.",
+        help="Free key from finnhub.io — needed for stock quotes/watchlist. Stored only in this session, never committed.",
     )
-
-auto_refresh = st.sidebar.checkbox("Auto-refresh (every 10s)", value=False)
-refresh_clicked = st.sidebar.button("Refresh now")
+    auto_refresh = st.checkbox("Auto-refresh (every 10s)", value=False)
+    refresh_clicked = st.button("Refresh now")
 
 
 def fetch_price(symbol: str) -> dict | None:
@@ -105,10 +111,14 @@ def fetch_price(symbol: str) -> dict | None:
 
 
 @st.cache_data(ttl=5)
-def fetch_watchlist() -> list[tuple[str, dict | None]]:
-    """Crypto-only quick-glance watchlist — Kraken's public REST needs no key,
-    so this always works without asking the user for anything."""
+def fetch_crypto_watchlist() -> list[tuple[str, dict | None]]:
+    """Kraken's public REST needs no key, so crypto rows always work."""
     return [(pair, get_ticker(api_pair, result_key)) for pair, (api_pair, result_key) in CRYPTO_PAIRS.items()]
+
+
+@st.cache_data(ttl=5)
+def fetch_stock_watchlist(finnhub_key: str) -> list[tuple[str, dict | None]]:
+    return [(sym, get_quote(sym, finnhub_key)) for sym in STOCK_SYMBOLS]
 
 
 def update(symbol: str, quote: dict) -> None:
@@ -135,7 +145,7 @@ quote = fetch_price(symbol)
 
 if quote is None:
     if asset_class == "Stocks" and not finnhub_key:
-        st.info("Enter a Finnhub API key in the sidebar to load stock data. Free key: finnhub.io/register")
+        st.info("Enter a Finnhub API key (⚙ menu, top right) to load stock data. Free key: finnhub.io/register")
     else:
         st.error(f"No data returned for {symbol}.")
 else:
@@ -155,7 +165,7 @@ else:
 
     with col_watch:
         st.caption("WATCHLIST")
-        for pair, wq in fetch_watchlist():
+        for pair, wq in fetch_crypto_watchlist():
             if wq is None:
                 continue
             w_change = wq["price"] - wq["open"]
@@ -168,6 +178,20 @@ else:
                 f'<span class="sd-wchg {w_dir}">{w_pct:+.2f}%</span></div>',
                 unsafe_allow_html=True,
             )
+        if finnhub_key:
+            for sym, wq in fetch_stock_watchlist(finnhub_key):
+                if wq is None:
+                    continue
+                w_dir = "up" if wq["change"] >= 0 else "down"
+                active_cls = "active" if asset_class == "Stocks" and sym == symbol else ""
+                st.markdown(
+                    f'<div class="sd-wrow {active_cls}"><span class="sd-wsym">{sym}</span>'
+                    f'<span class="sd-wpx">{wq["price"]:,.2f}</span>'
+                    f'<span class="sd-wchg {w_dir}">{wq["pct_change"]:+.2f}%</span></div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.caption("Add a Finnhub key (⚙) to add stocks here.")
 
     with col_center:
         volume_chip = f'<div><div class="sd-mini-label">VOLUME</div><div class="sd-mini-val">{quote["volume"]:,.2f}</div></div>' if has_volume else ""
@@ -187,25 +211,47 @@ else:
         )
         st.markdown(stat_html, unsafe_allow_html=True)
 
-        history = st.session_state.history[symbol]
-        if len(history) >= 2:
-            # Streamlit's native charts force a zero baseline, which flattens a
-            # price series into an unreadable line near the top — build the
-            # y-scale explicitly instead of relying on st.line_chart/area_chart.
-            chart_df = pd.DataFrame({"i": range(len(history)), "price": history})
-            pad = (max(history) - min(history)) * 0.15 or max(history) * 0.002
-            line = (
-                alt.Chart(chart_df)
-                .mark_line(color="#22c55e" if direction == "up" else "#ef4444", strokeWidth=2)
-                .encode(
-                    x=alt.X("i:Q", axis=None),
-                    y=alt.Y("price:Q", scale=alt.Scale(domain=[min(history) - pad, max(history) + pad]), axis=alt.Axis(title=None)),
-                )
-                .properties(height=280)
+        tools = get_market_tools(finnhub_key)
+        candles = tools.get_candles(symbol, limit=60) if asset_class == "Crypto" else []
+        if candles:
+            candle_df = pd.DataFrame([c.model_dump() for c in candles])
+            candle_df["i"] = range(len(candle_df))
+            candle_df["dir"] = candle_df.apply(lambda r: "up" if r["close"] >= r["open"] else "down", axis=1)
+            color_scale = alt.Scale(domain=["up", "down"], range=["#22c55e", "#ef4444"])
+            base = alt.Chart(candle_df).encode(x=alt.X("i:Q", axis=None))
+            wick = base.mark_rule().encode(
+                y=alt.Y("low:Q", scale=alt.Scale(zero=False), axis=alt.Axis(title=None)),
+                y2="high:Q",
+                color=alt.Color("dir:N", scale=color_scale, legend=None),
             )
-            st.altair_chart(line, use_container_width=True)
+            body = base.mark_bar(size=6).encode(
+                y=alt.Y("open:Q", scale=alt.Scale(zero=False)),
+                y2="close:Q",
+                color=alt.Color("dir:N", scale=color_scale, legend=None),
+            )
+            st.altair_chart((wick + body).properties(height=280), use_container_width=True)
+            st.caption(f"Kraken 1-minute candles, last {len(candle_df)}.")
         else:
-            st.caption("Collecting price history — refresh a few times to see the chart.")
+            history = st.session_state.history[symbol]
+            if len(history) >= 2:
+                # Streamlit's native charts force a zero baseline, which flattens a
+                # price series into an unreadable line near the top — explicit
+                # y-scale instead of relying on st.line_chart/area_chart.
+                chart_df = pd.DataFrame({"i": range(len(history)), "price": history})
+                pad = (max(history) - min(history)) * 0.15 or max(history) * 0.002
+                line = (
+                    alt.Chart(chart_df)
+                    .mark_line(color="#22c55e" if direction == "up" else "#ef4444", strokeWidth=2)
+                    .encode(
+                        x=alt.X("i:Q", axis=None),
+                        y=alt.Y("price:Q", scale=alt.Scale(domain=[min(history) - pad, max(history) + pad]), axis=alt.Axis(title=None)),
+                    )
+                    .properties(height=280)
+                )
+                st.altair_chart(line, use_container_width=True)
+                st.caption("Polled price history (no OHLC candle source for equities on Finnhub's free tier).")
+            else:
+                st.caption("Collecting price history — refresh a few times to see the chart.")
 
         if has_volume:
             volume_history = st.session_state.volume_history.get(symbol, [])
@@ -214,17 +260,16 @@ else:
 
     with col_right:
         st.caption("ORDER BOOK")
-        tools = get_market_tools(finnhub_key)
         book = tools.get_orderbook(symbol) if asset_class == "Crypto" else None
         if book is None:
             st.caption("Not available for equities on Finnhub's free tier." if asset_class == "Stocks" else "Order book temporarily unavailable.")
         else:
             for level in reversed(book.asks[:3]):
-                st.markdown(f'<div class="sd-book-row"><span></span><span class="sd-book-price a" style="text-align:center;">{level.price:,.2f}</span><span style="text-align:right;">{level.size:.4f}</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="sd-book-row"><span>—</span><span class="sd-book-price a" style="text-align:center;">{level.price:,.2f}</span><span style="text-align:right;">{level.size:.4f}</span></div>', unsafe_allow_html=True)
             spread = book.asks[0].price - book.bids[0].price if book.asks and book.bids else 0.0
             st.markdown(f'<div class="sd-book-mid"><span>Spread</span><span>{spread:,.2f}</span></div>', unsafe_allow_html=True)
             for level in book.bids[:3]:
-                st.markdown(f'<div class="sd-book-row"><span>{level.size:.4f}</span><span class="sd-book-price b" style="text-align:center;">{level.price:,.2f}</span><span></span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="sd-book-row"><span>{level.size:.4f}</span><span class="sd-book-price b" style="text-align:center;">{level.price:,.2f}</span><span>—</span></div>', unsafe_allow_html=True)
 
         st.divider()
         st.caption("ASK THE AGENT")
@@ -241,9 +286,6 @@ else:
             )
         else:
             st.caption("No crossover yet.")
-
-st.sidebar.divider()
-st.sidebar.caption("Crypto: Kraken public REST. Stocks: Finnhub REST. Polled on each refresh — not a live WebSocket feed.")
 
 if auto_refresh:
     time.sleep(10)
