@@ -1,0 +1,16 @@
+app = "signal-deck"                 # change to whatever `flyctl apps create` gives you
+primary_region = "iad"               # pick the region nearest you
+
+[build]
+
+[http_service]
+  internal_port = 8501
+  force_https = true
+  auto_stop_machines = "stop"        # scales to zero when idle — keeps this on the free allowance
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512

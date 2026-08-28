@@ -9,6 +9,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from hft import config
 from hft.marketdata.finnhub import get_quote
 from hft.marketdata.kraken_rest import get_ticker
 from hft.strategies.moving_average import MovingAverageCrossover
@@ -86,17 +87,20 @@ with top_p:
     st.markdown('<div class="sd-pill"><span class="sd-dot"></span>Kraken live</div>', unsafe_allow_html=True)
 
 try:
-    default_key = st.secrets.get("FINNHUB_API_KEY", "")
+    default_key = st.secrets.get("FINNHUB_API_KEY", "") or config.FINNHUB_API_KEY
 except Exception:
-    default_key = ""  # no secrets.toml configured — user enters a key manually
+    default_key = config.FINNHUB_API_KEY  # no secrets.toml (e.g. containerized deploy) — fall back to the env var
 
 with top_gear, st.popover("⚙"):
-    finnhub_key = st.text_input(
-        "Finnhub API key",
-        value=default_key,
-        type="password",
-        help="Free key from finnhub.io — needed for stock quotes/watchlist. Stored only in this session, never committed.",
-    )
+    if default_key:
+        finnhub_key = default_key
+        st.caption("Finnhub key configured ✓")
+    else:
+        finnhub_key = st.text_input(
+            "Finnhub API key",
+            type="password",
+            help="Free key from finnhub.io — needed for stock quotes/watchlist. Stored only in this session, never committed.",
+        )
     auto_refresh = st.checkbox("Auto-refresh (every 10s)", value=False)
     refresh_clicked = st.button("Refresh now")
 

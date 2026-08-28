@@ -1,0 +1,10 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.streamlit/secrets.toml
+*.db
+agent_traces.jsonl
+.env
+.DS_Store

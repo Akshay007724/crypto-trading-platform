@@ -22,6 +22,9 @@ def parse_quote(raw: dict) -> dict | None:
 
 
 def get_quote(symbol: str, api_key: str) -> dict | None:
-    resp = requests.get(QUOTE_URL, params={"symbol": symbol, "token": api_key}, timeout=8)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(QUOTE_URL, params={"symbol": symbol, "token": api_key}, timeout=8)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return None  # bad/expired key, rate limit, network issue — degrade like "no data", never crash the page
     return parse_quote(resp.json())
