@@ -1,3 +1,7 @@
 streamlit
 pandas
 requests
+pydantic>=2
+redis
+openai
+altair

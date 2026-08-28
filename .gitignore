@@ -5,3 +5,7 @@ __pycache__/
 .streamlit/secrets.toml
 .omc/
 .serena/
+*.db
+agent_traces.jsonl
+.env
+.DS_Store
