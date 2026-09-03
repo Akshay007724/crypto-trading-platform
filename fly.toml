@@ -1,16 +1,20 @@
-app = "signal-deck"                 # change to whatever `flyctl apps create` gives you
-primary_region = "iad"               # pick the region nearest you
+# fly.toml app configuration file generated for signal-deck-black-leaf-4316 on 2026-08-27T22:51:32-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'signal-deck-black-leaf-4316'
+primary_region = 'iad'
 
 [build]
-
 [http_service]
   internal_port = 8501
   force_https = true
-  auto_stop_machines = "stop"        # scales to zero when idle — keeps this on the free allowance
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
 [[vm]]
-  cpu_kind = "shared"
+  memory = '2gb'
   cpus = 1
-  memory_mb = 512
+  memory_mb = 2048

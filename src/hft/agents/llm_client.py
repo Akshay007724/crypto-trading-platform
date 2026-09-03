@@ -52,17 +52,31 @@ class LLMClient:
         return self._client
 
     def chat(self, system_prompt: str, user_prompt: str, tools: list[dict] | None = None, tool_choice: str = "auto") -> LLMResponse:
+        from openai import APIConnectionError
+
         client = self._ensure_client()
         start = time.monotonic()
         kwargs = {}
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = tool_choice
-        resp = client.chat.completions.create(
-            model=self._model,
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
-            **kwargs,
-        )
+        try:
+            resp = client.chat.completions.create(
+                model=self._model,
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+                **kwargs,
+            )
+        except APIConnectionError:
+            # The SDK's own retries fire back-to-back in well under a second —
+            # too fast to survive a cold-start host (e.g. a scaled-to-zero Fly
+            # machine whose outbound networking isn't up yet). One retry after
+            # a real pause covers that case; a genuinely dead network still fails.
+            time.sleep(3)
+            resp = client.chat.completions.create(
+                model=self._model,
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+                **kwargs,
+            )
         latency = time.monotonic() - start
         choice = resp.choices[0].message
         tool_calls = []
